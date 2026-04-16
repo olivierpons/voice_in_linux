@@ -40,9 +40,14 @@ Sviluppato con l'aiuto dell'intelligenza artificiale.
 - **100% locale** — l'audio viene elaborato su CPU o GPU, mai inviato
 - **Accelerazione GPU** — supporto NVIDIA CUDA per trascrizione quasi istantanea
 - **99 lingue** — basato su OpenAI Whisper
+
+> ⚠️ **NVIDIA GPU con CUDA è fondamentale per tempi di risposta accettabili.**
+> Senza CUDA: **10–15 secondi** di elaborazione per 15 secondi di parlato.
+> Con CUDA: **meno di 1 secondo**. Se avete una GPU NVIDIA (GTX 1060+), configurare CUDA deve essere la priorità assoluta.
 - **Leggero** — singolo binario C (~100 KB), senza Python
 - **Integrazione nel system tray** — icona discreta nella barra delle applicazioni
 - **Doppi appunti** — testo copiato in PRIMARY e CLIPBOARD
+- **Comandi vocali** — comandi francesi integrati per punteggiatura e formattazione, disabilitati per impostazione predefinita (`VOICE_IN_COMMANDS=1` per abilitare). Attualmente solo in francese; modificare `g_voice_pairs` in `voice_in.c` per altre lingue.
 - **Maiuscole automatiche** — le frasi vengono capitalizzate automaticamente
 - **Avvio automatico** — configurabile all'accesso
 

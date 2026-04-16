@@ -1,0 +1,18 @@
+# Voice commands: Italian (it)
+# Format: spoken_form|replacement
+# Use \n for newline, \t for tab
+
+nuovo paragrafo|\n\n
+nuova riga|\n
+a capo|\n
+punto interrogativo|?
+punto esclamativo|!
+apri parentesi|(
+chiudi parentesi|)
+apri virgolette|"
+chiudi virgolette|"
+punto e virgola|;
+due punti|:
+punto|.
+virgola|,
+trattino|-

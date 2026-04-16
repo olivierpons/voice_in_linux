@@ -1,0 +1,17 @@
+# Voice commands: Spanish (es)
+# Format: spoken_form|replacement
+# Use \n for newline, \t for tab
+
+nuevo parrafo|\n\n
+nueva linea|\n
+signo de interrogacion|?
+signo de exclamacion|!
+abrir parentesis|(
+cerrar parentesis|)
+abrir comillas|"
+cerrar comillas|"
+punto y coma|;
+dos puntos|:
+punto|.
+coma|,
+guion|-

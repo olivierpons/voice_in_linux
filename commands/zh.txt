@@ -1,0 +1,19 @@
+# Voice commands: Chinese Mandarin (zh)
+# Format: spoken_form|replacement
+# Use \n for newline, \t for tab
+
+另起一段|\n\n
+换行|\n
+新的一行|\n
+下一行|\n
+问号|?
+感叹号|!
+左括号|(
+右括号|)
+左引号|"
+右引号|"
+分号|;
+冒号|:
+句号|。
+逗号|，
+破折号|——

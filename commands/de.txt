@@ -1,0 +1,18 @@
+# Voice commands: German (de)
+# Format: spoken_form|replacement
+# Use \n for newline, \t for tab
+
+neuer absatz|\n\n
+neue zeile|\n
+naechste zeile|\n
+fragezeichen|?
+ausrufezeichen|!
+klammer auf|(
+klammer zu|)
+anfuehrungszeichen auf|"
+anfuehrungszeichen zu|"
+semikolon|;
+doppelpunkt|:
+punkt|.
+komma|,
+bindestrich|-

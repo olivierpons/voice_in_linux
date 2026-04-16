@@ -45,7 +45,7 @@ Réalisé avec l'aide de l'intelligence artificielle.
 - **Intégration system tray** — icône discrète dans la barre des tâches
 - **Double presse-papier** — texte copié dans PRIMARY et CLIPBOARD
 - **Notifications bureau** — le texte transcrit est affiché en notification
-- **Commandes vocales** — commandes françaises intégrées ("point", "virgule", "nouvelle ligne"...), désactivées par défaut (`VOICE_IN_COMMANDS=1` pour activer)
+- **Commandes vocales** — commandes françaises intégrées pour la ponctuation et la mise en forme, désactivées par défaut (`VOICE_IN_COMMANDS=1` pour activer). Dites "point" → `.`, "virgule" → `,`, "nouvelle ligne" → saut de ligne, etc. Pour ajouter d'autres langues, modifiez la table `g_voice_pairs` dans `voice_in.c`.
 - **Majuscules automatiques** — les phrases sont capitalisées automatiquement
 - **Démarrage automatique** — configurable au login
 
@@ -86,12 +86,28 @@ Réalisé avec l'aide de l'intelligence artificielle.
 | xclip | Presse-papiers X11 | `sudo apt install xclip` |
 | notify-send | Notifications bureau | `sudo apt install libnotify-bin` |
 
-### GPU NVIDIA (optionnel, fortement recommandé)
+### GPU NVIDIA (optionnel mais critique pour les performances)
+
+Sans CUDA, comptez **10 à 15 secondes** de traitement pour 15 secondes de parole. Avec CUDA, comptez **moins d'1 seconde**. C'est un facteur **10 à 50x**.
 
 | Composant | Minimum | Vérification |
 |---|---|---|
 | Driver NVIDIA | 570+ | `nvidia-smi` |
 | CUDA Toolkit | 12.0+ | `nvcc --version` |
+
+Si `nvidia-smi` fonctionne mais pas `nvcc`, installez le toolkit CUDA :
+
+```bash
+sudo apt install nvidia-cuda-toolkit
+```
+
+Si la version CUDA affichée par `nvidia-smi` est **inférieure** à celle de `nvcc`, mettez à jour le driver :
+
+```bash
+ubuntu-drivers devices
+sudo apt install nvidia-driver-590
+sudo reboot
+```
 
 ---
 

@@ -1,0 +1,22 @@
+# Voice commands: English (en)
+# Format: spoken_form|replacement
+# Use \n for newline, \t for tab
+# Longer phrases MUST come before shorter ones
+
+new paragraph|\n\n
+new line|\n
+next line|\n
+question mark|?
+exclamation mark|!
+exclamation point|!
+open parenthesis|(
+close parenthesis|)
+open bracket|[
+close bracket|]
+open quote|"
+close quote|"
+semicolon|;
+colon|:
+period|.
+comma|,
+dash|-

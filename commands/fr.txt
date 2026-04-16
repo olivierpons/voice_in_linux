@@ -1,0 +1,20 @@
+# Voice commands: French (fr)
+# Format: spoken_form|replacement
+# Use \n for newline, \t for tab
+# Longer phrases MUST come before shorter ones to avoid partial matches
+# (e.g., "point virgule" before "point")
+
+nouvelle ligne|\n
+a la ligne|\n
+nouveau paragraphe|\n\n
+point virgule|;
+deux points|:
+point d'interrogation|?
+point d'exclamation|!
+ouvre parenthese|(
+ferme parenthese|)
+ouvre guillemets|"
+ferme guillemets|"
+point|.
+virgule|,
+tiret|-

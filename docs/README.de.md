@@ -47,9 +47,14 @@ Erstellt mit Hilfe von künstlicher Intelligenz.
 - **100% lokal** — Audio wird auf CPU oder GPU verarbeitet, nie versendet
 - **GPU-beschleunigt** — NVIDIA CUDA-Unterstützung für nahezu sofortige Transkription
 - **99 Sprachen** — unterstützt durch OpenAI Whisper
+
+> ⚠️ **NVIDIA GPU mit CUDA ist entscheidend für akzeptable Antwortzeiten.**
+> Ohne CUDA: **10–15 Sekunden** Verarbeitung pro 15 Sekunden Sprache.
+> Mit CUDA: **unter 1 Sekunde**. Wenn Sie eine NVIDIA GPU haben (GTX 1060+), sollte die CUDA-Einrichtung höchste Priorität haben.
 - **Leichtgewichtig** — einzelne C-Binärdatei (~100 KB), kein Python nötig
 - **System-Tray-Integration** — unauffälliges Symbol in der Taskleiste
 - **Doppelte Zwischenablage** — Text in PRIMARY und CLIPBOARD
+- **Sprachbefehle** — eingebaute französische Befehle für Satzzeichen und Formatierung, standardmäßig deaktiviert (`VOICE_IN_COMMANDS=1` zum Aktivieren). Derzeit nur Französisch; editieren Sie `g_voice_pairs` in `voice_in.c` für andere Sprachen.
 - **Automatische Großschreibung** — Sätze werden automatisch kapitalisiert
 - **Autostart** — beim Login konfigurierbar
 

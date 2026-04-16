@@ -40,9 +40,14 @@ Desarrollado con la ayuda de inteligencia artificial.
 - **100% local** — el audio se procesa en CPU o GPU, nunca se envía
 - **Aceleración GPU** — soporte NVIDIA CUDA para transcripción casi instantánea
 - **99 idiomas** — impulsado por OpenAI Whisper
+
+> ⚠️ **NVIDIA GPU con CUDA es crítico para tiempos de respuesta aceptables.**
+> Sin CUDA: **10–15 segundos** de procesamiento por cada 15 segundos de habla.
+> Con CUDA: **menos de 1 segundo**. Si tiene una GPU NVIDIA (GTX 1060+), configurar CUDA debe ser su máxima prioridad.
 - **Ligero** — binario C único (~100 KB), sin Python ni dependencias de ejecución
 - **Integración en la bandeja** — icono discreto en la barra de tareas
 - **Doble portapapeles** — texto copiado en PRIMARY y CLIPBOARD
+- **Comandos de voz** — comandos franceses integrados para puntuación y formato, desactivados por defecto (`VOICE_IN_COMMANDS=1` para activar). Actualmente solo en francés; edite `g_voice_pairs` en `voice_in.c` para otros idiomas.
 - **Mayúsculas automáticas** — las oraciones se capitalizan automáticamente
 - **Inicio automático** — configurable al iniciar sesión
 

@@ -10,10 +10,11 @@
 ** notification through libnotify.
 **
 ** Environment variables:
-**   VOICE_IN_MODEL     path to ggml model (default: see DEFAULT_MODEL)
-**   VOICE_IN_LANGUAGE  ISO code or "auto" (default: "fr")
-**   VOICE_IN_DEVICE    PortAudio device index (default: system default)
-**   VOICE_IN_COMMANDS  set to "1" to enable voice commands (default: off)
+**   VOICE_IN_MODEL       path to ggml model
+**   VOICE_IN_LANGUAGE    ISO code or "auto" (default: "fr")
+**   VOICE_IN_DEVICE      PortAudio device index
+**   VOICE_IN_COMMANDS    "1" to enable voice commands
+**   VOICE_IN_CMDS_FILE   explicit path to commands file
 */
 
 #define _POSIX_C_SOURCE 200809L
@@ -56,9 +57,12 @@
 #define NOTIFY_TIMEOUT_MS   10000
 #define WHISPER_THREADS     8
 #define MIN_AUDIO_SAMPLES   (SAMPLE_RATE / 4)
+#define CMD_LINE_MAX        1024
+#define CMD_INITIAL_CAP     32
 
 #define DEFAULT_MODEL       "whisper.cpp/models/ggml-medium.bin"
 #define DEFAULT_LANG        "fr"
+#define CMDS_DIR            "commands"
 
 /* -------------------------------------------------- */
 /*                  Types                             */
@@ -82,6 +86,12 @@ typedef struct s_notify_msg
 	char	*body;
 }	t_notify_msg;
 
+typedef struct s_voice_cmd
+{
+	char	*spoken;
+	char	*replacement;
+}	t_voice_cmd;
+
 typedef struct s_app
 {
 	GtkStatusIcon		*status_icon;
@@ -96,61 +106,36 @@ typedef struct s_app
 	struct whisper_context	*wctx;
 	char			lang[16];
 	bool			commands_on;
+	t_voice_cmd		*commands;
+	int			cmd_count;
+	int			cmd_cap;
 	_Atomic t_app_state	state;
 }	t_app;
-
-/*
-** Voice command substitution pairs.
-** Spoken form (lowercase) → replacement string.
-** Longer phrases must come first to avoid partial matches.
-*/
-static const char	*g_voice_pairs[][2] = {
-	{"nouvelle ligne",        "\n"},
-	{"a la ligne",            "\n"},
-	{"nouveau paragraphe",    "\n\n"},
-	{"point virgule",         ";"},
-	{"deux points",           ":"},
-	{"point d'interrogation", "?"},
-	{"point d'exclamation",   "!"},
-	{"ouvre parenthese",      "("},
-	{"ferme parenthese",      ")"},
-	{"ouvre guillemets",       "\""},
-	{"ferme guillemets",       "\""},
-	{"point",                 "."},
-	{"virgule",               ","},
-	{"tiret",                 "-"},
-	{NULL, NULL}
-};
 
 /* -------------------------------------------------- */
 /*              Static prototypes                     */
 /* -------------------------------------------------- */
 
-/* Icons */
 static GdkPixbuf	*make_icon(double r, double g, double b,
 				gboolean filled);
-
-/* State */
 static void		set_state(t_app_state state);
 static gboolean		set_state_cb(gpointer data);
 static void		request_state(t_app_state state);
-
-/* Clipboard and notifications */
 static void		copy_to_selection(const char *text,
 				const char *sel);
 static void		copy_to_clipboards(const char *text);
 static gboolean		notify_cb(gpointer data);
 static void		request_notify(const char *title,
 				const char *body);
-
-/* Text processing */
+static void		process_escapes(char *s);
+static int		cmd_cmp_len_desc(const void *a, const void *b);
+static void		load_commands(void);
+static void		free_commands(void);
 static void		str_replace(char *out, const char *in,
 				const char *needle, const char *repl);
 static void		str_lower_ascii(char *s);
 static char		*apply_voice_cmds(const char *text);
 static void		capitalize_sentences(char *text);
-
-/* Audio */
 static int		audio_cb(const void *in, void *out,
 				unsigned long count,
 				const PaStreamCallbackTimeInfo *ti,
@@ -158,24 +143,17 @@ static int		audio_cb(const void *in, void *out,
 				void *udata);
 static int		audio_start(void);
 static void		audio_stop(void);
-
-/* Whisper */
 static char		*run_whisper(const float *samples,
 				size_t n_samples);
 static void		*transcribe_thread(void *arg);
-
-/* GTK handlers */
-static void		on_activate(GtkStatusIcon *icon, gpointer data);
+static void		on_activate(GtkStatusIcon *icon,
+				gpointer data);
 static void		on_toggle(GtkMenuItem *item, gpointer data);
 static void		on_quit(GtkMenuItem *item, gpointer data);
 static void		on_popup(GtkStatusIcon *icon, guint btn,
 				guint time, gpointer data);
-
-/* Recording control */
 static void		rec_start(void);
 static void		rec_stop(void);
-
-/* Init helpers */
 static int		init_whisper(void);
 static void		init_lang(void);
 static void		init_device(void);
@@ -193,14 +171,6 @@ static t_app	g_app;
 /*                  Icons                             */
 /* -------------------------------------------------- */
 
-/*
-** make_icon - Render a colored circle as a GdkPixbuf.
-**
-** @r, @g, @b : RGB color components (0.0 to 1.0).
-** @filled    : TRUE for solid fill, FALSE for outline only.
-**
-** Returns a newly allocated GdkPixbuf (caller owns the ref).
-*/
 static GdkPixbuf	*make_icon(double r, double g, double b,
 				gboolean filled)
 {
@@ -246,9 +216,6 @@ static void	set_state(t_app_state state)
 	gtk_status_icon_set_from_pixbuf(g_app.status_icon, pb);
 }
 
-/*
-** set_state_cb - GLib idle callback to set state on the main thread.
-*/
 static gboolean	set_state_cb(gpointer data)
 {
 	t_state_msg	*msg;
@@ -259,9 +226,6 @@ static gboolean	set_state_cb(gpointer data)
 	return (G_SOURCE_REMOVE);
 }
 
-/*
-** request_state - Thread-safe state change via g_idle_add.
-*/
 static void	request_state(t_app_state state)
 {
 	t_state_msg	*msg;
@@ -275,12 +239,6 @@ static void	request_state(t_app_state state)
 /*              Clipboard / notifications             */
 /* -------------------------------------------------- */
 
-/*
-** copy_to_selection - Pipe text into xclip for a given X11 selection.
-**
-** @text : null-terminated string to copy.
-** @sel  : "primary" or "clipboard".
-*/
 static void	copy_to_selection(const char *text, const char *sel)
 {
 	int		pipefd[2];
@@ -303,7 +261,8 @@ static void	copy_to_selection(const char *text, const char *sel)
 		dup2(pipefd[0], STDIN_FILENO);
 		close(pipefd[0]);
 		close(pipefd[1]);
-		execlp("xclip", "xclip", "-selection", sel, (char *)NULL);
+		execlp("xclip", "xclip", "-selection",
+			sel, (char *)NULL);
 		_exit(127);
 	}
 	close(pipefd[0]);
@@ -363,15 +322,162 @@ static void	request_notify(const char *title, const char *body)
 }
 
 /* -------------------------------------------------- */
-/*              Text processing                       */
+/*              Voice commands (file-based)           */
 /* -------------------------------------------------- */
 
 /*
-** str_replace - Replace all occurrences of needle in @in,
-**               writing the result into @out.
-**
-** @out must be large enough to hold the expanded result.
+** process_escapes - Expand \n and \t in place.
 */
+static void	process_escapes(char *s)
+{
+	char	*r;
+	char	*w;
+
+	r = s;
+	w = s;
+	while (*r)
+	{
+		if (*r == '\\' && *(r + 1) == 'n')
+		{
+			*w++ = '\n';
+			r += 2;
+		}
+		else if (*r == '\\' && *(r + 1) == 't')
+		{
+			*w++ = '\t';
+			r += 2;
+		}
+		else
+			*w++ = *r++;
+	}
+	*w = '\0';
+}
+
+/*
+** cmd_cmp_len_desc - qsort comparator: longest spoken form first.
+**
+** Prevents partial matches (e.g., "point" matching inside
+** "open parenthesis") by trying longer phrases first.
+*/
+static int	cmd_cmp_len_desc(const void *a, const void *b)
+{
+	const t_voice_cmd	*ca;
+	const t_voice_cmd	*cb;
+	size_t			la;
+	size_t			lb;
+
+	ca = a;
+	cb = b;
+	la = strlen(ca->spoken);
+	lb = strlen(cb->spoken);
+	if (la > lb)
+		return (-1);
+	if (la < lb)
+		return (1);
+	return (0);
+}
+
+/*
+** load_commands - Read voice command pairs from a text file.
+**
+** Looks for VOICE_IN_CMDS_FILE first, then commands/<lang>.txt
+** where <lang> is the first two characters of VOICE_IN_LANGUAGE.
+** Silently does nothing if no file is found or commands are off.
+*/
+static void	load_commands(void)
+{
+	const char	*path;
+	char		auto_path[256];
+	FILE		*fp;
+	char		line[CMD_LINE_MAX];
+	char		*sep;
+	char		*spoken;
+	char		*repl;
+	size_t		slen;
+
+	if (!g_app.commands_on)
+		return ;
+	path = getenv("VOICE_IN_CMDS_FILE");
+	if (!path || !*path)
+	{
+		snprintf(auto_path, sizeof(auto_path),
+			"%s/%.2s.txt", CMDS_DIR, g_app.lang);
+		path = auto_path;
+	}
+	fp = fopen(path, "r");
+	if (!fp)
+	{
+		fprintf(stderr, "voice commands: %s not found\n",
+			path);
+		return ;
+	}
+	g_app.cmd_cap = CMD_INITIAL_CAP;
+	g_app.commands = malloc(
+		g_app.cmd_cap * sizeof(t_voice_cmd));
+	if (!g_app.commands)
+	{
+		fclose(fp);
+		return ;
+	}
+	g_app.cmd_count = 0;
+	while (fgets(line, CMD_LINE_MAX, fp))
+	{
+		slen = strlen(line);
+		while (slen > 0 && (line[slen - 1] == '\n'
+			|| line[slen - 1] == '\r'))
+			line[--slen] = '\0';
+		if (slen == 0 || line[0] == '#')
+			continue ;
+		sep = strchr(line, '|');
+		if (!sep)
+			continue ;
+		*sep = '\0';
+		spoken = line;
+		repl = sep + 1;
+		process_escapes(repl);
+		if (g_app.cmd_count >= g_app.cmd_cap)
+		{
+			g_app.cmd_cap *= 2;
+			g_app.commands = realloc(g_app.commands,
+				g_app.cmd_cap * sizeof(t_voice_cmd));
+			if (!g_app.commands)
+				break ;
+		}
+		g_app.commands[g_app.cmd_count].spoken =
+			strdup(spoken);
+		g_app.commands[g_app.cmd_count].replacement =
+			strdup(repl);
+		g_app.cmd_count++;
+	}
+	fclose(fp);
+	qsort(g_app.commands, g_app.cmd_count,
+		sizeof(t_voice_cmd), cmd_cmp_len_desc);
+	fprintf(stderr, "voice commands: loaded %d from %s\n",
+		g_app.cmd_count, path);
+}
+
+static void	free_commands(void)
+{
+	int	i;
+
+	i = 0;
+	while (i < g_app.cmd_count)
+	{
+		free(g_app.commands[i].spoken);
+		g_app.commands[i].spoken = NULL;
+		free(g_app.commands[i].replacement);
+		g_app.commands[i].replacement = NULL;
+		i++;
+	}
+	free(g_app.commands);
+	g_app.commands = NULL;
+	g_app.cmd_count = 0;
+}
+
+/* -------------------------------------------------- */
+/*              Text processing                       */
+/* -------------------------------------------------- */
+
 static void	str_replace(char *out, const char *in,
 			const char *needle, const char *repl)
 {
@@ -408,9 +514,7 @@ static void	str_lower_ascii(char *s)
 }
 
 /*
-** apply_voice_cmds - Replace spoken commands with their text equivalent.
-**
-** @text : raw transcript from whisper.
+** apply_voice_cmds - Replace spoken commands from the loaded table.
 **
 ** Returns a newly allocated string (caller must free).
 */
@@ -439,10 +543,11 @@ static char	*apply_voice_cmds(const char *text)
 	src = buf_a;
 	dst = buf_b;
 	i = 0;
-	while (g_voice_pairs[i][0] != NULL)
+	while (i < g_app.cmd_count)
 	{
-		str_replace(dst, src, g_voice_pairs[i][0],
-			g_voice_pairs[i][1]);
+		str_replace(dst, src,
+			g_app.commands[i].spoken,
+			g_app.commands[i].replacement);
 		tmp = src;
 		src = dst;
 		dst = tmp;
@@ -454,12 +559,6 @@ static char	*apply_voice_cmds(const char *text)
 	return (result);
 }
 
-/*
-** capitalize_sentences - Uppercase the first letter of each sentence.
-**
-** Operates in-place. Only handles ASCII a-z; accented UTF-8 characters
-** at sentence boundaries are left as-is.
-*/
 static void	capitalize_sentences(char *text)
 {
 	bool	cap_next;
@@ -507,7 +606,8 @@ static int	audio_cb(const void *in, void *out,
 		atomic_fetch_sub(&g_app.audio_len, count);
 		return (paContinue);
 	}
-	memcpy(g_app.audio_buf + pos, in, count * sizeof(float));
+	memcpy(g_app.audio_buf + pos, in,
+		count * sizeof(float));
 	return (paContinue);
 }
 
@@ -530,7 +630,8 @@ static int	audio_start(void)
 	params.channelCount = NUM_CHANNELS;
 	params.sampleFormat = paFloat32;
 	params.suggestedLatency =
-		Pa_GetDeviceInfo(params.device)->defaultLowInputLatency;
+		Pa_GetDeviceInfo(params.device)
+		->defaultLowInputLatency;
 	err = Pa_OpenStream(&g_app.stream, &params, NULL,
 		SAMPLE_RATE, FRAMES_PER_BUFFER, paNoFlag,
 		audio_cb, NULL);
@@ -565,14 +666,6 @@ static void	audio_stop(void)
 /*              Whisper transcription                  */
 /* -------------------------------------------------- */
 
-/*
-** run_whisper - Transcribe a float32 PCM buffer.
-**
-** @samples   : mono 16 kHz float32 audio.
-** @n_samples : number of samples.
-**
-** Returns a newly allocated string (caller must free).
-*/
 static char	*run_whisper(const float *samples, size_t n_samples)
 {
 	struct whisper_full_params	wp;
@@ -585,7 +678,8 @@ static char	*run_whisper(const float *samples, size_t n_samples)
 	char				*out;
 	char				*nout;
 
-	wp = whisper_full_default_params(WHISPER_SAMPLING_GREEDY);
+	wp = whisper_full_default_params(
+		WHISPER_SAMPLING_GREEDY);
 	wp.print_realtime = false;
 	wp.print_progress = false;
 	wp.print_timestamps = false;
@@ -598,7 +692,8 @@ static char	*run_whisper(const float *samples, size_t n_samples)
 	wp.language = NULL;
 	if (strcmp(g_app.lang, "auto") != 0)
 		wp.language = g_app.lang;
-	if (whisper_full(g_app.wctx, wp, samples, (int)n_samples) != 0)
+	if (whisper_full(g_app.wctx, wp, samples,
+		(int)n_samples) != 0)
 		return (strdup(""));
 	n_seg = whisper_full_n_segments(g_app.wctx);
 	cap = 256;
@@ -610,7 +705,8 @@ static char	*run_whisper(const float *samples, size_t n_samples)
 	i = -1;
 	while (++i < n_seg)
 	{
-		seg_text = whisper_full_get_segment_text(g_app.wctx, i);
+		seg_text = whisper_full_get_segment_text(
+			g_app.wctx, i);
 		while (*seg_text == ' ')
 			seg_text++;
 		tlen = strlen(seg_text);
@@ -634,11 +730,6 @@ static char	*run_whisper(const float *samples, size_t n_samples)
 	return (out);
 }
 
-/*
-** transcribe_thread - Worker: stop audio, run whisper, publish result.
-**
-** Runs on a detached thread spawned by rec_stop().
-*/
 static void	*transcribe_thread(void *arg)
 {
 	size_t		n;
@@ -674,7 +765,7 @@ static void	*transcribe_thread(void *arg)
 		request_state(STATE_IDLE);
 		return (NULL);
 	}
-	if (g_app.commands_on)
+	if (g_app.commands_on && g_app.cmd_count > 0)
 	{
 		text = apply_voice_cmds(raw);
 		free(raw);
@@ -715,7 +806,8 @@ static void	rec_stop(void)
 
 	audio_stop();
 	set_state(STATE_PROCESSING);
-	if (pthread_create(&tid, NULL, transcribe_thread, NULL) != 0)
+	if (pthread_create(&tid, NULL,
+		transcribe_thread, NULL) != 0)
 	{
 		perror("pthread_create");
 		request_state(STATE_IDLE);
@@ -780,10 +872,12 @@ static int	init_whisper(void)
 	fprintf(stderr, "loading whisper model: %s\n", model);
 	cp = whisper_context_default_params();
 	cp.use_gpu = true;
-	g_app.wctx = whisper_init_from_file_with_params(model, cp);
+	g_app.wctx =
+		whisper_init_from_file_with_params(model, cp);
 	if (!g_app.wctx)
 	{
-		fprintf(stderr, "failed to load model: %s\n", model);
+		fprintf(stderr, "failed to load model: %s\n",
+			model);
 		return (-1);
 	}
 	fprintf(stderr, "whisper ready\n");
@@ -816,7 +910,8 @@ static void	init_options(void)
 	cmds = getenv("VOICE_IN_COMMANDS");
 	g_app.commands_on = (cmds && strcmp(cmds, "1") == 0);
 	fprintf(stderr, "voice commands: %s\n",
-		g_app.commands_on ? "enabled" : "disabled");
+		g_app.commands_on
+		? "enabled" : "disabled");
 }
 
 static void	build_menu(void)
@@ -825,27 +920,35 @@ static void	build_menu(void)
 	GtkWidget	*quit;
 
 	g_app.menu = gtk_menu_new();
-	toggle = gtk_menu_item_new_with_label("Toggle recording");
+	toggle = gtk_menu_item_new_with_label(
+		"Toggle recording");
 	quit = gtk_menu_item_new_with_label("Quit");
 	g_signal_connect(toggle, "activate",
 		G_CALLBACK(on_toggle), NULL);
 	g_signal_connect(quit, "activate",
 		G_CALLBACK(on_quit), NULL);
-	gtk_menu_shell_append(GTK_MENU_SHELL(g_app.menu), toggle);
-	gtk_menu_shell_append(GTK_MENU_SHELL(g_app.menu), quit);
+	gtk_menu_shell_append(
+		GTK_MENU_SHELL(g_app.menu), toggle);
+	gtk_menu_shell_append(
+		GTK_MENU_SHELL(g_app.menu), quit);
 	gtk_widget_show_all(g_app.menu);
 }
 
 static void	build_tray(void)
 {
-	g_app.icon_idle = make_icon(1.0, 1.0, 1.0, FALSE);
-	g_app.icon_recording = make_icon(0.94, 0.33, 0.31, TRUE);
-	g_app.icon_processing = make_icon(1.0, 0.65, 0.15, TRUE);
+	g_app.icon_idle =
+		make_icon(1.0, 1.0, 1.0, FALSE);
+	g_app.icon_recording =
+		make_icon(0.94, 0.33, 0.31, TRUE);
+	g_app.icon_processing =
+		make_icon(1.0, 0.65, 0.15, TRUE);
 	g_app.status_icon =
-		gtk_status_icon_new_from_pixbuf(g_app.icon_idle);
+		gtk_status_icon_new_from_pixbuf(
+			g_app.icon_idle);
 	gtk_status_icon_set_tooltip_text(
 		g_app.status_icon, "VoiceIn local");
-	gtk_status_icon_set_visible(g_app.status_icon, TRUE);
+	gtk_status_icon_set_visible(
+		g_app.status_icon, TRUE);
 	g_signal_connect(g_app.status_icon, "activate",
 		G_CALLBACK(on_activate), NULL);
 	g_signal_connect(g_app.status_icon, "popup-menu",
@@ -869,6 +972,7 @@ int	main(int argc, char **argv)
 	init_lang();
 	init_device();
 	init_options();
+	load_commands();
 	g_app.audio_buf = calloc(AUDIO_CAPACITY, sizeof(float));
 	if (!g_app.audio_buf)
 	{
@@ -896,6 +1000,7 @@ int	main(int argc, char **argv)
 		audio_stop();
 	Pa_Terminate();
 	whisper_free(g_app.wctx);
+	free_commands();
 	notify_uninit();
 	free(g_app.audio_buf);
 	g_app.audio_buf = NULL;

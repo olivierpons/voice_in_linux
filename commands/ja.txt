@@ -1,0 +1,18 @@
+# Voice commands: Japanese (ja)
+# Format: spoken_form|replacement
+# Use \n for newline, \t for tab
+
+新しい段落|\n\n
+改行|\n
+次の行|\n
+疑問符|?
+感嘆符|!
+括弧開き|(
+括弧閉じ|)
+引用符開き|"
+引用符閉じ|"
+セミコロン|;
+コロン|:
+句点|。
+読点|、
+ハイフン|-

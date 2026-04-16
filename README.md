@@ -36,6 +36,14 @@ Built with the help of AI.
 
 ---
 
+> ⚠️ **NVIDIA GPU with CUDA is critical for usable response times.**
+> Without CUDA, transcription takes **10–15 seconds** for 15 seconds of speech (CPU only).
+> With CUDA enabled, the same transcription takes **less than 1 second**.
+> If you have an NVIDIA GPU (GTX 1060 or newer), setting up CUDA should be your top priority.
+> See the [NVIDIA GPU](#nvidia-gpu-optional-but-critical-for-performance) section below.
+
+---
+
 ## Features
 
 - **100% local** — audio is processed on your CPU or GPU, never sent anywhere
@@ -45,7 +53,7 @@ Built with the help of AI.
 - **System tray integration** — unobtrusive icon in your taskbar
 - **Dual clipboard** — text is pushed to both PRIMARY and CLIPBOARD X11 selections
 - **Desktop notifications** — transcribed text displayed as a notification
-- **Voice commands** — built-in French commands for punctuation ("point", "virgule", "nouvelle ligne"...), disabled by default (`VOICE_IN_COMMANDS=1` to enable)
+- **Voice commands** — built-in French commands for punctuation and formatting, disabled by default (`VOICE_IN_COMMANDS=1` to enable, see [Voice Commands](#voice-commands))
 - **Auto-capitalization** — sentences are capitalized automatically
 - **Auto-start** — can be configured to launch at login
 
@@ -88,14 +96,28 @@ Built with the help of AI.
 | xclip | Copy to X11 clipboards | `sudo apt install xclip` |
 | notify-send | Desktop notifications | `sudo apt install libnotify-bin` |
 
-### NVIDIA GPU (optional, strongly recommended)
+### NVIDIA GPU (optional but critical for performance)
+
+Without CUDA, expect **10–15 seconds** of processing per 15 seconds of speech. With CUDA, expect **under 1 second**. This is a **10–50x** difference.
 
 | Component | Minimum | Check |
 |---|---|---|
 | NVIDIA Driver | 570+ | `nvidia-smi` |
 | CUDA Toolkit | 12.0+ | `nvcc --version` |
 
-> The CUDA version shown by `nvidia-smi` must be **≥** the version shown by `nvcc --version`. If not, update your driver.
+If `nvidia-smi` works but `nvcc` does not, install the CUDA toolkit:
+
+```bash
+sudo apt install nvidia-cuda-toolkit
+```
+
+If the CUDA version shown by `nvidia-smi` is **lower** than the one shown by `nvcc --version`, your driver is too old. Update it:
+
+```bash
+ubuntu-drivers devices                  # list available drivers
+sudo apt install nvidia-driver-590      # install the latest
+sudo reboot
+```
 
 ### CPU
 
@@ -170,9 +192,19 @@ All configuration is done through environment variables (all optional):
 
 ### Voice Commands
 
-Voice commands are **disabled by default**. When enabled (`VOICE_IN_COMMANDS=1`), spoken keywords are replaced with their corresponding characters. For example, saying "point" inserts `.`, "virgule" inserts `,`, "nouvelle ligne" inserts a line break, etc.
+Voice commands are **disabled by default**. When enabled (`VOICE_IN_COMMANDS=1`), spoken French keywords are replaced with their corresponding characters:
 
-This avoids unexpected replacements when you actually want to write the word "point" or "virgule" in your text.
+| You say | Inserted |
+|---|---|
+| "point" | `.` |
+| "virgule" | `,` |
+| "nouvelle ligne" | line break |
+| "point d'exclamation" | `!` |
+| "point d'interrogation" | `?` |
+
+> **Note:** Built-in voice commands are currently French only. To add commands in another language, edit the `g_voice_pairs` table in `voice_in.c`.
+
+This avoids unexpected replacements when you actually want to write the word literally in your text.
 
 ### Available Models
 
