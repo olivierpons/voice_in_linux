@@ -1,4 +1,6 @@
-# Voice In Linux
+# opons-voxd
+
+> Note: opons-voxd is unrelated to jakovius/voxd. The name was chosen independently — `opons` = O. Pons (author), `voxd` = vox + daemon (Latin/Unix tradition).
 
 **Linux 本地语音转文字工具 ── 您的声音永远不会离开您的电脑。**
 
@@ -33,7 +35,7 @@
 
 | 空闲 | 录音中 |
 |:---:|:---:|
-| ![空闲](../screenshots/voice_in_inactive.png) | ![录音中](../screenshots/voice_in_active.png) |
+| ![空闲](../screenshots/opons_voxd_inactive.png) | ![录音中](../screenshots/opons_voxd_active.png) |
 
 ## 功能特点
 
@@ -48,8 +50,8 @@
 - **轻量级** ── 单个 C 语言二进制文件（约 100 KB），无需 Python
 - **系统托盘集成** ── 任务栏中的小图标
 - **双剪贴板** ── 文本同时写入 PRIMARY 和 CLIPBOARD
-- **语音命令** ── 每种语言一个命令文件（`commands/` 目录），默认禁用（`VOICE_IN_COMMANDS=1` 启用）。添加新语言只需创建 `commands/xx.txt`，无需重新编译。
-- **瞬态通知** ── 通知出现后自动消失。设置 `VOICE_IN_NOTIFY_PERSIST=1` 可保留在通知历史中。
+- **语音命令** ── 每种语言一个命令文件（`commands/` 目录），默认禁用（`OPONS_VOXD_COMMANDS=1` 启用）。添加新语言只需创建 `commands/xx.txt`，无需重新编译。
+- **瞬态通知** ── 通知出现后自动消失。设置 `OPONS_VOXD_NOTIFY_PERSIST=1` 可保留在通知历史中。
 - **自动大写** ── 句首字母自动大写
 - **开机自启** ── 可配置为登录时自动启动
 
@@ -66,8 +68,8 @@ sudo apt install -y \
     xclip libnotify-bin
 
 # 2. 克隆项目
-git clone https://github.com/olivierpons/voice_in_linux.git
-cd voice_in_linux
+git clone https://github.com/olivierpons/opons-voxd.git
+cd opons-voxd
 
 # 3. 编译 whisper.cpp 并下载模型
 make setup
@@ -76,7 +78,7 @@ make setup
 make
 
 # 5. 运行
-./voice_in
+./opons-voxd
 ```
 
 ---

@@ -1,4 +1,6 @@
-# Voice In Linux
+# opons-voxd
+
+> Note: opons-voxd is unrelated to jakovius/voxd. The name was chosen independently — `opons` = O. Pons (author), `voxd` = vox + daemon (Latin/Unix tradition).
 
 **Lokale Sprache-zu-Text-Diktierlösung für Linux — Ihre Stimme verlässt niemals Ihren Rechner.**
 
@@ -22,7 +24,7 @@ Erstellt mit Hilfe von künstlicher Intelligenz.
 
 | Inaktiv | Aufnahme |
 |:---:|:---:|
-| ![Inaktiv](../screenshots/voice_in_inactive.png) | ![Aufnahme](../screenshots/voice_in_active.png) |
+| ![Inaktiv](../screenshots/opons_voxd_inactive.png) | ![Aufnahme](../screenshots/opons_voxd_active.png) |
 
 ## Funktionsweise
 
@@ -40,7 +42,7 @@ Erstellt mit Hilfe von künstlicher Intelligenz.
 
 | Inaktiv | Aufnahme |
 |:---:|:---:|
-| ![Inaktiv](../screenshots/voice_in_inactive.png) | ![Aufnahme](../screenshots/voice_in_active.png) |
+| ![Inaktiv](../screenshots/opons_voxd_inactive.png) | ![Aufnahme](../screenshots/opons_voxd_active.png) |
 
 ## Funktionen
 
@@ -54,8 +56,8 @@ Erstellt mit Hilfe von künstlicher Intelligenz.
 - **Leichtgewichtig** — einzelne C-Binärdatei (~100 KB), kein Python nötig
 - **System-Tray-Integration** — unauffälliges Symbol in der Taskleiste
 - **Doppelte Zwischenablage** — Text in PRIMARY und CLIPBOARD
-- **Sprachbefehle** — Befehlsdateien pro Sprache in `commands/`, standardmäßig deaktiviert (`VOICE_IN_COMMANDS=1`). Neue Sprache: einfach `commands/xx.txt` erstellen, keine Neukompilierung nötig.
-- **Transiente Benachrichtigungen** — erscheinen und verschwinden vollständig. `VOICE_IN_NOTIFY_PERSIST=1` um sie im Verlauf zu behalten.
+- **Sprachbefehle** — Befehlsdateien pro Sprache in `commands/`, standardmäßig deaktiviert (`OPONS_VOXD_COMMANDS=1`). Neue Sprache: einfach `commands/xx.txt` erstellen, keine Neukompilierung nötig.
+- **Transiente Benachrichtigungen** — erscheinen und verschwinden vollständig. `OPONS_VOXD_NOTIFY_PERSIST=1` um sie im Verlauf zu behalten.
 - **Automatische Großschreibung** — Sätze werden automatisch kapitalisiert
 - **Autostart** — beim Login konfigurierbar
 
@@ -72,8 +74,8 @@ sudo apt install -y \
     xclip libnotify-bin
 
 # 2. Repository klonen
-git clone https://github.com/olivierpons/voice_in_linux.git
-cd voice_in_linux
+git clone https://github.com/olivierpons/opons-voxd.git
+cd opons-voxd
 
 # 3. whisper.cpp kompilieren + Modell herunterladen
 make setup
@@ -82,7 +84,7 @@ make setup
 make
 
 # 5. Starten
-./voice_in
+./opons-voxd
 ```
 
 ---

@@ -1,4 +1,6 @@
-# Voice In Linux
+# opons-voxd
+
+> Note: opons-voxd is unrelated to jakovius/voxd. The name was chosen independently — `opons` = O. Pons (author), `voxd` = vox + daemon (Latin/Unix tradition).
 
 **Dictado de voz a texto 100% local para Linux — su voz nunca sale de su máquina.**
 
@@ -33,7 +35,7 @@ Desarrollado con la ayuda de inteligencia artificial.
 
 | Inactivo | Grabando |
 |:---:|:---:|
-| ![Inactivo](../screenshots/voice_in_inactive.png) | ![Grabando](../screenshots/voice_in_active.png) |
+| ![Inactivo](../screenshots/opons_voxd_inactive.png) | ![Grabando](../screenshots/opons_voxd_active.png) |
 
 ## Características
 
@@ -47,8 +49,8 @@ Desarrollado con la ayuda de inteligencia artificial.
 - **Ligero** — binario C único (~100 KB), sin Python ni dependencias de ejecución
 - **Integración en la bandeja** — icono discreto en la barra de tareas
 - **Doble portapapeles** — texto copiado en PRIMARY y CLIPBOARD
-- **Comandos de voz** — archivos de comandos por idioma en `commands/`, desactivados por defecto (`VOICE_IN_COMMANDS=1`). Para añadir un idioma, cree `commands/xx.txt` — sin recompilar.
-- **Notificaciones transitorias** — aparecen y desaparecen completamente. `VOICE_IN_NOTIFY_PERSIST=1` para mantenerlas en el historial.
+- **Comandos de voz** — archivos de comandos por idioma en `commands/`, desactivados por defecto (`OPONS_VOXD_COMMANDS=1`). Para añadir un idioma, cree `commands/xx.txt` — sin recompilar.
+- **Notificaciones transitorias** — aparecen y desaparecen completamente. `OPONS_VOXD_NOTIFY_PERSIST=1` para mantenerlas en el historial.
 - **Mayúsculas automáticas** — las oraciones se capitalizan automáticamente
 - **Inicio automático** — configurable al iniciar sesión
 
@@ -65,8 +67,8 @@ sudo apt install -y \
     xclip libnotify-bin
 
 # 2. Clonar el repositorio
-git clone https://github.com/olivierpons/voice_in_linux.git
-cd voice_in_linux
+git clone https://github.com/olivierpons/opons-voxd.git
+cd opons-voxd
 
 # 3. Compilar whisper.cpp y descargar el modelo
 make setup
@@ -75,7 +77,7 @@ make setup
 make
 
 # 5. Ejecutar
-./voice_in
+./opons-voxd
 ```
 
 ---

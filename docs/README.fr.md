@@ -1,4 +1,6 @@
-# Voice In Linux
+# opons-voxd
+
+> Note: opons-voxd is unrelated to jakovius/voxd. The name was chosen independently — `opons` = O. Pons (author), `voxd` = vox + daemon (Latin/Unix tradition).
 
 **Dictation vocale 100% locale pour Linux — votre voix ne quitte jamais votre machine.**
 
@@ -32,7 +34,7 @@ Réalisé avec l'aide de l'intelligence artificielle.
 
 | Inactif | Enregistrement |
 |:---:|:---:|
-| ![Inactif](../screenshots/voice_in_inactive.png) | ![Enregistrement](../screenshots/voice_in_active.png) |
+| ![Inactif](../screenshots/opons_voxd_inactive.png) | ![Enregistrement](../screenshots/opons_voxd_active.png) |
 
 ---
 
@@ -45,8 +47,8 @@ Réalisé avec l'aide de l'intelligence artificielle.
 - **Intégration system tray** — icône discrète dans la barre des tâches
 - **Double presse-papier** — texte copié dans PRIMARY et CLIPBOARD
 - **Notifications bureau** — le texte transcrit est affiché en notification
-- **Commandes vocales** — fichiers de commandes par langue dans `commands/`, désactivées par défaut (`VOICE_IN_COMMANDS=1`). Ajoutez une langue en créant `commands/xx.txt`, sans recompiler.
-- **Notifications transitoires** — par défaut les notifications apparaissent puis disparaissent complètement. `VOICE_IN_NOTIFY_PERSIST=1` pour les garder dans l'historique.
+- **Commandes vocales** — fichiers de commandes par langue dans `commands/`, désactivées par défaut (`OPONS_VOXD_COMMANDS=1`). Ajoutez une langue en créant `commands/xx.txt`, sans recompiler.
+- **Notifications transitoires** — par défaut les notifications apparaissent puis disparaissent complètement. `OPONS_VOXD_NOTIFY_PERSIST=1` pour les garder dans l'historique.
 - **Majuscules automatiques** — les phrases sont capitalisées automatiquement
 - **Démarrage automatique** — configurable au login
 
@@ -123,8 +125,8 @@ sudo apt install -y \
     xclip libnotify-bin
 
 # 2. Cloner le projet
-git clone https://github.com/olivierpons/voice_in_linux.git
-cd voice_in_linux
+git clone https://github.com/olivierpons/opons-voxd.git
+cd opons-voxd
 
 # 3. Compiler whisper.cpp + télécharger le modèle
 make setup
@@ -133,7 +135,7 @@ make setup
 make
 
 # 5. Lancer
-./voice_in
+./opons-voxd
 ```
 
 ---

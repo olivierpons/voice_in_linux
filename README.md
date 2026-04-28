@@ -1,4 +1,6 @@
-# Voice In Linux
+# opons-voxd
+
+> Note: opons-voxd is unrelated to jakovius/voxd. The name was chosen independently — `opons` = O. Pons (author), `voxd` = vox + daemon (Latin/Unix tradition).
 
 **Local speech-to-text dictation for Linux — your voice never leaves your machine.**
 
@@ -38,13 +40,13 @@ Two ways to dictate, available simultaneously:
 2. **Release the keys** → recording stops, audio is transcribed
 3. The transcribed text is **typed directly at the keyboard cursor** (via `xdotool`) into whichever window has focus
 
-The hotkey is configurable via `VOICE_IN_PTT_HOTKEY` (see [Configuration](#configuration)).
+The hotkey is configurable via `OPONS_VOXD_PTT_HOTKEY` (see [Configuration](#configuration)).
 
 ### Screenshots
 
 | Idle | Recording |
 |:---:|:---:|
-| ![Idle](screenshots/voice_in_inactive.png) | ![Recording](screenshots/voice_in_active.png) |
+| ![Idle](screenshots/opons_voxd_inactive.png) | ![Recording](screenshots/opons_voxd_active.png) |
 
 ---
 
@@ -66,7 +68,7 @@ The hotkey is configurable via `VOICE_IN_PTT_HOTKEY` (see [Configuration](#confi
 - **Push-to-talk hotkey** — hold `Ctrl+Shift+Space` (configurable) to record, release to type the transcript at the keyboard cursor
 - **Dual clipboard** — text is pushed to both PRIMARY and CLIPBOARD X11 selections
 - **Desktop notifications** — transcribed text displayed as a notification
-- **Voice commands** — built-in French commands for punctuation and formatting, disabled by default (`VOICE_IN_COMMANDS=1` to enable, see [Voice Commands](#voice-commands))
+- **Voice commands** — built-in French commands for punctuation and formatting, disabled by default (`OPONS_VOXD_COMMANDS=1` to enable, see [Voice Commands](#voice-commands))
 - **Auto-capitalization** — sentences are capitalized automatically
 - **Auto-start** — can be configured to launch at login
 
@@ -160,8 +162,8 @@ sudo apt install -y \
 ### Step 2 — Clone this repository
 
 ```bash
-git clone https://github.com/olivierpons/voice_in_linux.git
-cd voice_in_linux
+git clone https://github.com/olivierpons/opons-voxd.git
+cd opons-voxd
 ```
 
 ### Step 3 — Build whisper.cpp and download the model
@@ -187,7 +189,7 @@ You'll see either `[build] CUDA detected` or `[build] CUDA not found — CPU onl
 ### Step 5 — Run
 
 ```bash
-./voice_in
+./opons-voxd
 ```
 
 The model loads in 2–5 seconds, then the icon appears in your system tray.
@@ -202,35 +204,35 @@ All configuration is done through environment variables (all optional):
 
 | Variable | Default | Description |
 |---|---|---|
-| `VOICE_IN_MODEL` | `whisper.cpp/models/ggml-medium.bin` | Path to the GGML model file |
-| `VOICE_IN_LANGUAGE` | `fr` | Whisper language code, or `auto` |
-| `VOICE_IN_DEVICE` | system default | PortAudio device index |
-| `VOICE_IN_COMMANDS` | `0` (disabled) | Set to `1` to enable voice commands |
-| `VOICE_IN_CMDS_FILE` | `commands/<lang>.txt` | Explicit path to a commands file |
-| `VOICE_IN_NOTIFY_PERSIST` | `0` (transient) | Set to `1` to keep notifications in history |
-| `VOICE_IN_PTT_HOTKEY` | `ctrl+shift+space` | Push-to-talk hotkey (e.g. `super+space`, `ctrl+alt+f1`) |
+| `OPONS_VOXD_MODEL` | `whisper.cpp/models/ggml-medium.bin` | Path to the GGML model file |
+| `OPONS_VOXD_LANGUAGE` | `fr` | Whisper language code, or `auto` |
+| `OPONS_VOXD_DEVICE` | system default | PortAudio device index |
+| `OPONS_VOXD_COMMANDS` | `0` (disabled) | Set to `1` to enable voice commands |
+| `OPONS_VOXD_CMDS_FILE` | `commands/<lang>.txt` | Explicit path to a commands file |
+| `OPONS_VOXD_NOTIFY_PERSIST` | `0` (transient) | Set to `1` to keep notifications in history |
+| `OPONS_VOXD_PTT_HOTKEY` | `ctrl+shift+space` | Push-to-talk hotkey (e.g. `super+space`, `ctrl+alt+f1`) |
 
 Examples:
 
 ```bash
 # English dictation, voice commands enabled, persistent notifications
-VOICE_IN_LANGUAGE=en VOICE_IN_COMMANDS=1 VOICE_IN_NOTIFY_PERSIST=1 ./voice_in
+OPONS_VOXD_LANGUAGE=en OPONS_VOXD_COMMANDS=1 OPONS_VOXD_NOTIFY_PERSIST=1 ./opons-voxd
 
 # Custom commands file
-VOICE_IN_COMMANDS=1 VOICE_IN_CMDS_FILE=~/my_commands.txt ./voice_in
+OPONS_VOXD_COMMANDS=1 OPONS_VOXD_CMDS_FILE=~/my_commands.txt ./opons-voxd
 ```
 
 ### Notifications
 
-By default, notifications are **transient**: they appear for 10 seconds then vanish completely, leaving no trace in the notification center. Set `VOICE_IN_NOTIFY_PERSIST=1` if you prefer notifications to remain in the history.
+By default, notifications are **transient**: they appear for 10 seconds then vanish completely, leaving no trace in the notification center. Set `OPONS_VOXD_NOTIFY_PERSIST=1` if you prefer notifications to remain in the history.
 
 ### Push-to-talk hotkey
 
-Hold the configured hotkey to record, release to type the transcript at the keyboard cursor. The default is `ctrl+shift+space`. Override it with `VOICE_IN_PTT_HOTKEY`:
+Hold the configured hotkey to record, release to type the transcript at the keyboard cursor. The default is `ctrl+shift+space`. Override it with `OPONS_VOXD_PTT_HOTKEY`:
 
 ```bash
-VOICE_IN_PTT_HOTKEY=super+space ./voice_in
-VOICE_IN_PTT_HOTKEY=ctrl+alt+f1 ./voice_in
+OPONS_VOXD_PTT_HOTKEY=super+space ./opons-voxd
+OPONS_VOXD_PTT_HOTKEY=ctrl+alt+f1 ./opons-voxd
 ```
 
 **Format**: `mod+mod+...+key`, separated by `+`, case-insensitive.
@@ -242,9 +244,9 @@ If the hotkey is invalid, already grabbed by another application, or `xdotool` i
 
 ### Voice Commands
 
-Voice commands are **disabled by default** to avoid unexpected replacements (e.g., saying "period" when you actually mean the word "period"). Enable them with `VOICE_IN_COMMANDS=1`.
+Voice commands are **disabled by default** to avoid unexpected replacements (e.g., saying "period" when you actually mean the word "period"). Enable them with `OPONS_VOXD_COMMANDS=1`.
 
-When enabled, the program loads a command file from the `commands/` directory based on the first two characters of `VOICE_IN_LANGUAGE`. For example, `VOICE_IN_LANGUAGE=fr` loads `commands/fr.txt`, `VOICE_IN_LANGUAGE=en` loads `commands/en.txt`.
+When enabled, the program loads a command file from the `commands/` directory based on the first two characters of `OPONS_VOXD_LANGUAGE`. For example, `OPONS_VOXD_LANGUAGE=fr` loads `commands/fr.txt`, `OPONS_VOXD_LANGUAGE=en` loads `commands/en.txt`.
 
 Included command files:
 
@@ -274,7 +276,7 @@ period|.
 comma|,
 ```
 
-No recompilation needed — just set `VOICE_IN_LANGUAGE=xx` and `VOICE_IN_COMMANDS=1`.
+No recompilation needed — just set `OPONS_VOXD_LANGUAGE=xx` and `OPONS_VOXD_COMMANDS=1`.
 
 ### Available Models
 
@@ -303,13 +305,13 @@ cd ../..
 ```bash
 mkdir -p ~/.config/autostart
 
-cat > ~/.config/autostart/voice-in.desktop << 'EOF'
+cat > ~/.config/autostart/opons-voxd.desktop << 'EOF'
 [Desktop Entry]
 Type=Application
-Name=VoiceIn Local
+Name=opons-voxd
 Comment=Local speech-to-text dictation
-Exec=/path/to/voice_in_linux/launch.sh
-Path=/path/to/voice_in_linux
+Exec=/path/to/opons-voxd/launch.sh
+Path=/path/to/opons-voxd
 Icon=audio-input-microphone
 Terminal=false
 StartupNotify=false
@@ -318,9 +320,9 @@ X-GNOME-Autostart-Delay=5
 EOF
 ```
 
-Replace `/path/to/voice_in_linux` with your actual installation path.
+Replace `/path/to/opons-voxd` with your actual installation path.
 
-The `launch.sh` script handles log rotation: `voice_in.log` is capped at 5 MB, with one `.old` backup.
+The `launch.sh` script handles log rotation: `opons_voxd.log` is capped at 5 MB, with one `.old` backup.
 
 You can also manage this through **Menu → Preferences → Startup Applications** in Cinnamon/MATE.
 
@@ -367,11 +369,11 @@ sudo reboot
 ## Verifying Network Isolation
 
 ```bash
-# While voice_in is running:
-strace -e trace=network -fp $(pgrep voice_in) 2>&1 | grep -v getsockopt
+# While opons-voxd is running:
+strace -e trace=network -fp $(pgrep opons-voxd) 2>&1 | grep -v getsockopt
 # No connect() or sendto() will appear.
 
-ss -tnp | grep voice_in
+ss -tnp | grep opons-voxd
 # No TCP connections.
 ```
 
@@ -391,7 +393,7 @@ This project uses [whisper.cpp](https://github.com/ggerganov/whisper.cpp), a C/C
 |---|---|---|---|
 | Whisper model (weights) | OpenAI | MIT | [openai/whisper](https://github.com/openai/whisper) |
 | whisper.cpp (inference engine) | Georgi Gerganov | MIT | [ggerganov/whisper.cpp](https://github.com/ggerganov/whisper.cpp) |
-| voice_in_linux (this project) | Olivier Pons | MIT | [olivierpons/voice_in_linux](https://github.com/olivierpons/voice_in_linux) |
+| opons-voxd (this project) | Olivier Pons | MIT | [olivierpons/opons-voxd](https://github.com/olivierpons/opons-voxd) |
 
 ---
 
@@ -399,7 +401,7 @@ This project uses [whisper.cpp](https://github.com/ggerganov/whisper.cpp), a C/C
 
 | File | Purpose |
 |---|---|
-| `voice_in.c` | Main source (~950 lines) |
+| `opons_voxd.c` | Main source (~950 lines) |
 | `Makefile` | Build system with automatic CUDA detection |
 | `launch.sh` | Launcher with rotating logs for auto-start |
 | `commands/*.txt` | Voice command files (en, fr, de, es, it, zh, ja) |

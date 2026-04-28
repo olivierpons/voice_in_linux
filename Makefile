@@ -1,10 +1,10 @@
-# Makefile for voice_in
+# Makefile for opons-voxd
 #
 # Usage:
 #     make setup      # clone whisper.cpp, build it, download the model
-#     make            # build the voice_in binary
+#     make            # build the opons-voxd binary
 #     make run        # launch it
-#     make clean      # remove voice_in binary
+#     make clean      # remove opons-voxd binary
 #     make distclean  # also remove whisper.cpp
 #
 # CUDA is auto-detected. If nvcc and libcudart are found, whisper.cpp is
@@ -81,21 +81,21 @@ endif
 
 # ---- targets ----
 
-all: voice_in
+all: opons-voxd
 
 $(PA_HEADER):
 	@mkdir -p $(PA_VENDOR_DIR)
 	@echo "[fetch] portaudio.h ($(PA_HEADER_URL))"
 	curl -fsSL -o $@ $(PA_HEADER_URL)
 
-voice_in: voice_in.c $(PA_HEADER)
+opons-voxd: opons_voxd.c $(PA_HEADER)
 ifeq ($(HAS_CUDA),1)
 	@echo "[build] CUDA detected — linking with GPU support"
 else
 	@echo "[build] CUDA not found — CPU only"
 endif
 	$(CC) $(CFLAGS) $(INCLUDES) $(PKG_CFLAGS) \
-	    voice_in.c -o $@ \
+	    opons_voxd.c -o $@ \
 	    -Wl,--start-group $(WHISPER_LIBS) -Wl,--end-group \
 	    $(PKG_LIBS) $(PA_LIBS) $(CUDA_LIBS) $(LDFLAGS) \
 	    -lm -lpthread -lstdc++ -fopenmp
@@ -126,11 +126,11 @@ endif
 	@echo ""
 	@echo "setup done. Run: make && make run"
 
-run: voice_in
-	VOICE_IN_MODEL=$(MODEL_FILE) ./voice_in
+run: opons-voxd
+	OPONS_VOXD_MODEL=$(MODEL_FILE) ./opons-voxd
 
 clean:
-	rm -f voice_in
+	rm -f opons-voxd
 
 distclean: clean
 	rm -rf $(WHISPER_DIR) vendor

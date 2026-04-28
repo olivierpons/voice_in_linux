@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /*
- * voice_in.c - System-tray push-to-talk dictation for Linux (X11).
+ * opons_voxd.c - System-tray push-to-talk dictation for Linux (X11).
  *
  * Copyright (C) 2026 Olivier Pons
  *
@@ -15,13 +15,13 @@
  * whisper.cpp, and shown as a desktop notification through libnotify.
  *
  * Environment variables:
- *   VOICE_IN_MODEL       path to ggml model
- *   VOICE_IN_LANGUAGE    ISO code or "auto" (default: "fr")
- *   VOICE_IN_DEVICE      PortAudio device index
- *   VOICE_IN_COMMANDS        "1" to enable voice commands
- *   VOICE_IN_CMDS_FILE       explicit path to commands file
- *   VOICE_IN_NOTIFY_PERSIST  "1" to keep notifications in history
- *   VOICE_IN_PTT_HOTKEY      push-to-talk hotkey spec, e.g.
+ *   OPONS_VOXD_MODEL       path to ggml model
+ *   OPONS_VOXD_LANGUAGE    ISO code or "auto" (default: "fr")
+ *   OPONS_VOXD_DEVICE      PortAudio device index
+ *   OPONS_VOXD_COMMANDS        "1" to enable voice commands
+ *   OPONS_VOXD_CMDS_FILE       explicit path to commands file
+ *   OPONS_VOXD_NOTIFY_PERSIST  "1" to keep notifications in history
+ *   OPONS_VOXD_PTT_HOTKEY      push-to-talk hotkey spec, e.g.
  *                            "ctrl+shift+space" (default), "super+space"
  */
 
@@ -417,8 +417,8 @@ static int cmd_cmp_len_desc(const void *a, const void *b)
 /**
  * load_commands - Read voice command pairs from a text file.
  *
- * Looks for VOICE_IN_CMDS_FILE first, then commands/<lang>.txt
- * where <lang> is the first two characters of VOICE_IN_LANGUAGE.
+ * Looks for OPONS_VOXD_CMDS_FILE first, then commands/<lang>.txt
+ * where <lang> is the first two characters of OPONS_VOXD_LANGUAGE.
  * Does nothing if commands are disabled or no file is found.
  */
 static void load_commands(void)
@@ -432,7 +432,7 @@ static void load_commands(void)
 
     if (!g_app.commands_on)
         return;
-    path = getenv("VOICE_IN_CMDS_FILE");
+    path = getenv("OPONS_VOXD_CMDS_FILE");
     if (!path || !*path) {
         snprintf(auto_path, sizeof(auto_path),
                  "%s/%.2s.txt", CMDS_DIR, g_app.lang);
@@ -754,7 +754,7 @@ static void *transcribe_thread(void *arg)
     (void)arg;
     n = atomic_load(&g_app.audio_len);
     if (n < MIN_AUDIO_SAMPLES) {
-        request_notify("VoiceIn", "Empty recording");
+        request_notify("opons-voxd", "Empty recording");
         g_app.via_hotkey = false;
         request_state(STATE_IDLE);
         return NULL;
@@ -771,7 +771,7 @@ static void *transcribe_thread(void *arg)
             audio_sec, elapsed, audio_sec / elapsed);
     if (!raw || !*raw) {
         free(raw);
-        request_notify("VoiceIn", "No speech detected");
+        request_notify("opons-voxd", "No speech detected");
         g_app.via_hotkey = false;
         request_state(STATE_IDLE);
         return NULL;
@@ -788,10 +788,10 @@ static void *transcribe_thread(void *arg)
             type_text(text);
         } else {
             copy_to_clipboards(text);
-            request_notify("VoiceIn", text);
+            request_notify("opons-voxd", text);
         }
     } else {
-        request_notify("VoiceIn", "No speech detected");
+        request_notify("opons-voxd", "No speech detected");
     }
     free(text);
     g_app.via_hotkey = false;
@@ -804,7 +804,7 @@ static void *transcribe_thread(void *arg)
 static void rec_start(void)
 {
     if (audio_start() != 0) {
-        request_notify("VoiceIn",
+        request_notify("opons-voxd",
                        "Mic error: cannot open stream");
         return;
     }
@@ -966,7 +966,7 @@ static void grab_hotkey_combo(unsigned int extra)
 }
 
 /**
- * init_hotkey - Parse VOICE_IN_PTT_HOTKEY, grab it on the X root.
+ * init_hotkey - Parse OPONS_VOXD_PTT_HOTKEY, grab it on the X root.
  *
  * Failures are non-fatal: if parsing fails, the variable is unset
  * to a non-empty bogus value, or the key is already grabbed by
@@ -979,7 +979,7 @@ static void init_hotkey(void)
     KeySym ks;
     int (*old_handler)(Display *, XErrorEvent *);
 
-    spec = getenv("VOICE_IN_PTT_HOTKEY");
+    spec = getenv("OPONS_VOXD_PTT_HOTKEY");
     if (!spec || !*spec)
         spec = DEFAULT_PTT_HOTKEY;
     if (parse_hotkey(spec, &g_app.ptt_mods, &ks) != 0) {
@@ -1067,7 +1067,7 @@ static int init_whisper(void)
     const char *model;
     struct whisper_context_params cp;
 
-    model = getenv("VOICE_IN_MODEL");
+    model = getenv("OPONS_VOXD_MODEL");
     if (!model || !*model)
         model = DEFAULT_MODEL;
     fprintf(stderr, "loading whisper model: %s\n", model);
@@ -1088,7 +1088,7 @@ static void init_lang(void)
 {
     const char *lang;
 
-    lang = getenv("VOICE_IN_LANGUAGE");
+    lang = getenv("OPONS_VOXD_LANGUAGE");
     if (!lang || !*lang)
         lang = DEFAULT_LANG;
     strncpy(g_app.lang, lang, sizeof(g_app.lang) - 1);
@@ -1099,7 +1099,7 @@ static void init_device(void)
 {
     const char *dev;
 
-    dev = getenv("VOICE_IN_DEVICE");
+    dev = getenv("OPONS_VOXD_DEVICE");
     g_app.input_device = (dev && *dev) ? atoi(dev) : -1;
 }
 
@@ -1108,11 +1108,11 @@ static void init_options(void)
     const char *cmds;
     const char *persist;
 
-    cmds = getenv("VOICE_IN_COMMANDS");
+    cmds = getenv("OPONS_VOXD_COMMANDS");
     g_app.commands_on = (cmds && strcmp(cmds, "1") == 0);
     fprintf(stderr, "voice commands: %s\n",
             g_app.commands_on ? "enabled" : "disabled");
-    persist = getenv("VOICE_IN_NOTIFY_PERSIST");
+    persist = getenv("OPONS_VOXD_NOTIFY_PERSIST");
     g_app.notify_persist =
         (persist && strcmp(persist, "1") == 0);
     fprintf(stderr, "notifications: %s\n",
@@ -1151,7 +1151,7 @@ static void build_tray(void)
     g_app.status_icon =
         gtk_status_icon_new_from_pixbuf(g_app.icon_idle);
     gtk_status_icon_set_tooltip_text(
-        g_app.status_icon, "VoiceIn local");
+        g_app.status_icon, "opons-voxd");
     gtk_status_icon_set_visible(g_app.status_icon, TRUE);
     g_signal_connect(g_app.status_icon, "activate",
                      G_CALLBACK(on_activate), NULL);
@@ -1166,7 +1166,7 @@ int main(int argc, char **argv)
     PaError err;
 
     gtk_init(&argc, &argv);
-    if (!notify_init("VoiceIn")) {
+    if (!notify_init("opons-voxd")) {
         fprintf(stderr, "notify_init failed\n");
         return 1;
     }

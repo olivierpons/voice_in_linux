@@ -1,4 +1,6 @@
-# Voice In Linux
+# opons-voxd
+
+> Note: opons-voxd is unrelated to jakovius/voxd. The name was chosen independently — `opons` = O. Pons (author), `voxd` = vox + daemon (Latin/Unix tradition).
 
 **Linux向けローカル音声テキスト変換ツール ── 音声データがマシンの外に出ることは一切ありません。**
 
@@ -33,7 +35,7 @@ AIの助けを借りて開発しました。
 
 | 待機中 | 録音中 |
 |:---:|:---:|
-| ![待機中](../screenshots/voice_in_inactive.png) | ![録音中](../screenshots/voice_in_active.png) |
+| ![待機中](../screenshots/opons_voxd_inactive.png) | ![録音中](../screenshots/opons_voxd_active.png) |
 
 ## 機能
 
@@ -48,8 +50,8 @@ AIの助けを借りて開発しました。
 - **軽量** ── 単一のCバイナリ（約100 KB）、Pythonは不要
 - **システムトレイ統合** ── タスクバーの目立たないアイコン
 - **デュアルクリップボード** ── PRIMARYとCLIPBOARDの両方にテキストをコピー
-- **音声コマンド** ── 言語ごとのコマンドファイル（`commands/`）、デフォルトで無効（`VOICE_IN_COMMANDS=1` で有効化）。新言語追加は `commands/xx.txt` を作成するだけ、再コンパイル不要。
-- **一時的通知** ── 通知は表示後完全に消えます。`VOICE_IN_NOTIFY_PERSIST=1` で通知履歴に残す。
+- **音声コマンド** ── 言語ごとのコマンドファイル（`commands/`）、デフォルトで無効（`OPONS_VOXD_COMMANDS=1` で有効化）。新言語追加は `commands/xx.txt` を作成するだけ、再コンパイル不要。
+- **一時的通知** ── 通知は表示後完全に消えます。`OPONS_VOXD_NOTIFY_PERSIST=1` で通知履歴に残す。
 - **自動大文字化** ── 文頭が自動的に大文字になります
 - **自動起動** ── ログイン時に自動起動を設定可能
 
@@ -66,8 +68,8 @@ sudo apt install -y \
     xclip libnotify-bin
 
 # 2. リポジトリをクローン
-git clone https://github.com/olivierpons/voice_in_linux.git
-cd voice_in_linux
+git clone https://github.com/olivierpons/opons-voxd.git
+cd opons-voxd
 
 # 3. whisper.cppをビルドしモデルをダウンロード
 make setup
@@ -76,7 +78,7 @@ make setup
 make
 
 # 5. 実行
-./voice_in
+./opons-voxd
 ```
 
 ---
