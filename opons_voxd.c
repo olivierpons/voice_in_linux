@@ -174,7 +174,13 @@ static int parse_hotkey(const char *spec, unsigned int *mods,
                         KeySym *ks);
 static int x_silent_error_handler(Display *dpy, XErrorEvent *ev);
 static void grab_hotkey_combo(unsigned int extra);
+static void ungrab_hotkey_combo(unsigned int extra);
+static int resolve_ptt_hotkey(const char *spec);
+static int open_ptt_display(void);
+static void grab_ptt_hotkey(void);
+static void ungrab_ptt_hotkey(void);
 static void init_hotkey(void);
+static void free_hotkey(void);
 static GdkFilterReturn ptt_event_filter(GdkXEvent *xev,
                                         GdkEvent *gev,
                                         gpointer data);
@@ -966,50 +972,69 @@ static void grab_hotkey_combo(unsigned int extra)
 }
 
 /**
- * init_hotkey - Parse OPONS_VOXD_PTT_HOTKEY, grab it on the X root.
- *
- * Failures are non-fatal: if parsing fails, the variable is unset
- * to a non-empty bogus value, or the key is already grabbed by
- * another client, push-to-talk is silently disabled and the tray
- * mode keeps working.
+ * ungrab_hotkey_combo - Symmetric counterpart to grab_hotkey_combo.
+ * @extra: same extra modifier bits used at grab time.
  */
-static void init_hotkey(void)
+static void ungrab_hotkey_combo(unsigned int extra)
 {
-    const char *spec;
-    KeySym ks;
-    int (*old_handler)(Display *, XErrorEvent *);
+    XUngrabKey(g_app.xdpy, (int)g_app.ptt_keycode,
+               g_app.ptt_mods | extra,
+               DefaultRootWindow(g_app.xdpy));
+}
 
-    spec = getenv("OPONS_VOXD_PTT_HOTKEY");
-    if (!spec || !*spec)
-        spec = DEFAULT_PTT_HOTKEY;
-    if (parse_hotkey(spec, &g_app.ptt_mods, &ks) != 0) {
-        fprintf(stderr,
-                "ptt: invalid hotkey '%s', "
-                "push-to-talk disabled\n", spec);
-        return;
-    }
-    g_app.xdpy = gdk_x11_get_default_xdisplay();
-    if (!g_app.xdpy) {
-        fprintf(stderr,
-                "ptt: no X display, "
-                "push-to-talk disabled\n");
-        return;
-    }
+/**
+ * resolve_ptt_hotkey - Read OPONS_VOXD_PTT_HOTKEY and parse it.
+ * @spec: out, points to the spec string actually used (env or default).
+ *
+ * Stores the parsed modifier mask in g_app.ptt_mods and the resolved
+ * keysym in *ks_out via parse_hotkey.
+ *
+ * Return: 0 on success, -1 on parse failure.
+ */
+static int resolve_ptt_hotkey(const char *spec)
+{
+    KeySym ks;
+
+    if (parse_hotkey(spec, &g_app.ptt_mods, &ks) != 0)
+        return -1;
     g_app.ptt_keycode =
         (unsigned int)XKeysymToKeycode(g_app.xdpy, ks);
-    if (g_app.ptt_keycode == 0) {
-        fprintf(stderr,
-                "ptt: keysym has no keycode, "
-                "push-to-talk disabled\n");
-        return;
-    }
-    /*
-     * Disable auto-repeat fake KeyRelease/KeyPress pairs while the
-     * hotkey is held, so we get a single KeyPress and a single
-     * KeyRelease per actual press/release cycle.
-     */
+    if (g_app.ptt_keycode == 0)
+        return -1;
+    return 0;
+}
+
+/**
+ * open_ptt_display - Acquire the X11 display from GDK.
+ *
+ * Stores the display pointer in g_app.xdpy. Also disables detectable
+ * auto-repeat so that holding the hotkey produces a single
+ * KeyPress/KeyRelease pair instead of synthetic repeat events.
+ *
+ * Return: 0 on success, -1 if no X display is available.
+ */
+static int open_ptt_display(void)
+{
+    g_app.xdpy = gdk_x11_get_default_xdisplay();
+    if (!g_app.xdpy)
+        return -1;
     XkbSetDetectableAutoRepeat(g_app.xdpy, True, NULL);
     XSync(g_app.xdpy, False);
+    return 0;
+}
+
+/**
+ * grab_ptt_hotkey - Grab the parsed hotkey on the X root window.
+ *
+ * Grabs four mod-overlay variants so the hotkey works regardless of
+ * CapsLock/NumLock state. Errors (e.g. BadAccess if another client
+ * already holds the grab) are silently swallowed by an error handler
+ * scoped to this function.
+ */
+static void grab_ptt_hotkey(void)
+{
+    int (*old_handler)(Display *, XErrorEvent *);
+
     old_handler = XSetErrorHandler(x_silent_error_handler);
     grab_hotkey_combo(0);
     grab_hotkey_combo(LockMask);
@@ -1019,7 +1044,71 @@ static void init_hotkey(void)
     XSetErrorHandler(old_handler);
     g_app.ptt_grabbed = true;
     gdk_window_add_filter(NULL, ptt_event_filter, NULL);
+}
+
+/**
+ * ungrab_ptt_hotkey - Release the grabs and remove the GDK filter.
+ *
+ * Symmetric counterpart to grab_ptt_hotkey, called from free_hotkey
+ * during shutdown.
+ */
+static void ungrab_ptt_hotkey(void)
+{
+    int (*old_handler)(Display *, XErrorEvent *);
+
+    if (!g_app.ptt_grabbed)
+        return;
+    gdk_window_remove_filter(NULL, ptt_event_filter, NULL);
+    old_handler = XSetErrorHandler(x_silent_error_handler);
+    ungrab_hotkey_combo(0);
+    ungrab_hotkey_combo(LockMask);
+    ungrab_hotkey_combo(Mod2Mask);
+    ungrab_hotkey_combo(LockMask | Mod2Mask);
+    XSync(g_app.xdpy, False);
+    XSetErrorHandler(old_handler);
+    g_app.ptt_grabbed = false;
+}
+
+/**
+ * init_hotkey - Parse OPONS_VOXD_PTT_HOTKEY, grab it on the X root.
+ *
+ * Failures are non-fatal: if parsing fails, no X display is available,
+ * or the key is already grabbed by another client, push-to-talk is
+ * silently disabled and the tray mode keeps working.
+ */
+static void init_hotkey(void)
+{
+    const char *spec;
+
+    spec = getenv("OPONS_VOXD_PTT_HOTKEY");
+    if (!spec || !*spec)
+        spec = DEFAULT_PTT_HOTKEY;
+    if (open_ptt_display() != 0) {
+        fprintf(stderr,
+                "ptt: no X display, "
+                "push-to-talk disabled\n");
+        return;
+    }
+    if (resolve_ptt_hotkey(spec) != 0) {
+        fprintf(stderr,
+                "ptt: invalid hotkey '%s', "
+                "push-to-talk disabled\n", spec);
+        return;
+    }
+    grab_ptt_hotkey();
     fprintf(stderr, "ptt: hotkey '%s' active\n", spec);
+}
+
+/**
+ * free_hotkey - Symmetric counterpart to init_hotkey.
+ *
+ * Called from main() at shutdown, mirroring whisper_init/whisper_free,
+ * Pa_Initialize/Pa_Terminate, notify_init/notify_uninit, and
+ * load_commands/free_commands.
+ */
+static void free_hotkey(void)
+{
+    ungrab_ptt_hotkey();
 }
 
 /*
@@ -1200,6 +1289,7 @@ int main(int argc, char **argv)
     /* shutdown */
     if (g_app.stream)
         audio_stop();
+    free_hotkey();
     Pa_Terminate();
     whisper_free(g_app.wctx);
     free_commands();
