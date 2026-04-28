@@ -14,4 +14,5 @@ fi
 
 echo "=== opons-voxd started at $(date) ===" >> "$LOG"
 export OPONS_VOXD_COMMANDS=1
+export OPONS_VOXD_PTT_HOTKEY=ctrl+alt+w
 exec ./opons-voxd 2>>"$LOG"
