@@ -1261,15 +1261,26 @@ static int parse_hotkey(const char *spec, unsigned int *mods,
 }
 
 /*
- * Silent X error handler installed during XGrabKey calls. Some
- * hotkeys may already be grabbed by the window manager (BadAccess);
- * we want to log a warning later, not abort. Returning 0 from an
- * X error handler tells Xlib to swallow the error.
+ * X error handler installed globally in main(). Default Xlib
+ * behaviour is to print on stderr and call exit(1) on protocol
+ * errors, which is hostile for a long-running tray app. We log
+ * verbosely (request opcode, error code, resource id) so the
+ * user can pinpoint what failed, and return 0 so Xlib swallows
+ * the error and the program keeps running.
  */
 static int x_silent_error_handler(Display *dpy, XErrorEvent *ev)
 {
-    (void)dpy;
-    (void)ev;
+    char buf[256];
+
+    XGetErrorText(dpy, ev->error_code, buf, sizeof(buf));
+    fprintf(stderr,
+            "Xlib error: %s "
+            "(serial=%lu, request=%u.%u, resourceid=0x%lx)\n",
+            buf,
+            ev->serial,
+            (unsigned)ev->request_code,
+            (unsigned)ev->minor_code,
+            (unsigned long)ev->resourceid);
     return 0;
 }
 
@@ -1605,6 +1616,11 @@ int main(int argc, char **argv)
 {
     PaError err;
 
+    if (!XInitThreads()) {
+        fprintf(stderr, "XInitThreads failed\n");
+        return 1;
+    }
+    XSetErrorHandler(x_silent_error_handler);
     gtk_init(&argc, &argv);
     if (!notify_init("opons-voxd")) {
         fprintf(stderr, "notify_init failed\n");
